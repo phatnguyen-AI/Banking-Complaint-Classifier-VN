@@ -1,9 +1,18 @@
-// ======== CONFIGURATION ========
+/**
+ * Banking Complaint Classifier - Frontend Application Logic
+ *
+ * Handles user interaction, API communication, and result display.
+ * All API calls are async with error handling and graceful degradation
+ * when the backend is unavailable (Render free tier cold starts).
+ */
+
+// -- Configuration --
 const API_BASE_URL = 'https://llm-vhhs.onrender.com';
 const API_ENDPOINT = `${API_BASE_URL}/predict`;
 const HEALTH_ENDPOINT = `${API_BASE_URL}/health`;
 
-// DOM Elements
+// -- DOM References --
+// Cached at module level to avoid repeated lookups.
 const textInput = document.getElementById('text-input');
 const charCount = document.getElementById('char-count');
 const classifyBtn = document.getElementById('classify-btn');
@@ -15,81 +24,48 @@ const confidenceBar = document.getElementById('confidence-bar');
 const newAnalysisBtn = document.getElementById('new-analysis-btn');
 const apiStatus = document.getElementById('api-status');
 
-// Không khởi tạo Modal toàn cục để tránh lỗi mất tham chiếu
-// const loadingModal = ... (Đã xóa dòng này)
-
-// Example texts for demonstration
+// Sample complaints covering all 6 categories for quick testing.
 const exampleTexts = [
-    'Thẻ của tôi bị lỗi không thể thanh toán được',
-    'Tôi không thể đăng nhập vào ứng dụng',
-    'Giao dịch chuyển tiền thất bại',
-    'Tôi muốn vay tiền mua nhà',
-    'Tài khoản của tôi có dấu hiệu bị xâm nhập',
-    'Làm sao để đổi mật khẩu?'
+    'The cua toi bi loi khong the thanh toan duoc',
+    'Toi khong the dang nhap vao ung dung',
+    'Giao dich chuyen tien that bai',
+    'Toi muon vay tien mua nha',
+    'Tai khoan cua toi co dau hieu bi xam nhap',
+    'Lam sao de doi mat khau?'
 ];
 
-// ======== INITIALIZATION ========
+// -- Initialization --
 document.addEventListener('DOMContentLoaded', function() {
-    // Check API status on page load
     checkApiStatus();
-    
-    // Set up event listeners
     setupEventListeners();
-    
-    // Update character count
     updateCharCount();
-    
-    // Debug info
-    console.log('Frontend loaded successfully');
-    console.log('API URL:', API_BASE_URL);
 });
 
-// ======== EVENT LISTENERS ========
+// -- Event Binding --
+// Null-checks on every element prevent runtime errors if the DOM
+// structure changes or elements are conditionally rendered.
 function setupEventListeners() {
-    // Form submission
     const form = document.getElementById('classification-form');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
-    } else {
-        console.error('Classification form not found!');
-    }
-    
-    // Text input changes
-    if (textInput) {
-        textInput.addEventListener('input', updateCharCount);
-    }
-    
-    // Example button
-    if (exampleBtn) {
-        exampleBtn.addEventListener('click', showExampleText);
-    }
-    
-    // New analysis button
-    if (newAnalysisBtn) {
-        newAnalysisBtn.addEventListener('click', resetForm);
-    }
+    if (form) form.addEventListener('submit', handleFormSubmit);
+    if (textInput) textInput.addEventListener('input', updateCharCount);
+    if (exampleBtn) exampleBtn.addEventListener('click', showExampleText);
+    if (newAnalysisBtn) newAnalysisBtn.addEventListener('click', resetForm);
 }
 
-// ======== API FUNCTIONS ========
+// -- API: Health Check --
+// Called on page load and every 30s. Updates the status badge in the navbar.
 async function checkApiStatus() {
     try {
-        console.log('Checking API health at:', HEALTH_ENDPOINT);
         const response = await fetch(HEALTH_ENDPOINT);
         const data = await response.json();
-        
-        if (response.ok && data.status === 'ok') {
-            if (apiStatus) {
-                apiStatus.textContent = 'Online';
-                apiStatus.className = 'badge bg-success';
-            }
-        } else {
-            if (apiStatus) {
-                apiStatus.textContent = 'Offline';
-                apiStatus.className = 'badge bg-danger';
-            }
+
+        if (apiStatus) {
+            const isOnline = response.ok && data.status === 'ok';
+            apiStatus.textContent = isOnline ? 'Online' : 'Offline';
+            apiStatus.className = isOnline ? 'badge bg-success' : 'badge bg-danger';
         }
     } catch (error) {
-        console.error('API Health Check Error:', error);
+        // Network failure or CORS issue -- mark as offline.
         if (apiStatus) {
             apiStatus.textContent = 'Offline';
             apiStatus.className = 'badge bg-danger';
@@ -97,90 +73,72 @@ async function checkApiStatus() {
     }
 }
 
+// -- API: Classification --
+// Sends POST /predict with the complaint text. Returns {label, score}.
 async function classifyText(text) {
-    try {
-        console.log('Sending classification request to:', API_ENDPOINT);
-        
-        const response = await fetch(API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ text: text })
-        });
-        
-        console.log('API response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Classification Error:', error);
-        showError('Không thể phân loại văn bản. Vui lòng thử lại sau.');
-        throw error;
+    const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+    });
+
+    if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
     }
+
+    return await response.json();
 }
 
-// ======== UI FUNCTIONS ========
+// -- Form Submission Handler --
 async function handleFormSubmit(event) {
     event.preventDefault();
-    
     if (!textInput) return;
-    
+
     const text = textInput.value.trim();
-    
-    // Validate input
+
+    // Client-side validation: reject short inputs before hitting the API.
     if (text.length < 10) {
-        showError('Vui lòng nhập ít nhất 10 ký tự.');
+        showError('Please enter at least 10 characters.');
         return;
     }
-    
-    // Disable button to prevent multiple submissions
+
+    // Disable submit button to prevent duplicate requests.
     if (classifyBtn) {
         classifyBtn.disabled = true;
-        classifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang xử lý...';
+        classifyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
     }
-    
-    // Lấy Modal instance theo cách an toàn nhất
+
+    // Show loading modal. Using getOrCreateInstance avoids stale reference
+    // issues that occur when caching the Modal instance at module level.
     const modalEl = document.getElementById('loading-modal');
     const loadingModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    
-    // Hiển thị modal
     loadingModal.show();
-    
+
     try {
-        // Call API
         const result = await classifyText(text);
-        
-        // --- QUAN TRỌNG: Thêm delay nhỏ để đảm bảo animation mượt mà và tránh lỗi kẹt modal ---
+
+        // Brief delay ensures the Bootstrap modal transition completes
+        // before we attempt to hide it, preventing a stuck backdrop.
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Ẩn modal
         loadingModal.hide();
-        
-        // Show results
+
         displayResults(result);
-        
-        // Scroll to results
+
         if (resultsSection) {
             resultsSection.scrollIntoView({ behavior: 'smooth' });
         }
     } catch (error) {
-        // Ẩn modal nếu có lỗi
         loadingModal.hide();
-        console.error('Form submission error:', error);
+        showError('Classification failed. The API may be starting up -- please retry in 10 seconds.');
     } finally {
-        // Re-enable button
+        // Re-enable the submit button regardless of success or failure.
         if (classifyBtn) {
             classifyBtn.disabled = false;
-            classifyBtn.innerHTML = '<i class="fas fa-search me-2"></i>Phân loại';
+            classifyBtn.innerHTML = '<i class="fas fa-search me-2"></i>Classify';
         }
 
-        // --- FIX BỔ SUNG: Dọn dẹp backdrop nếu bị kẹt ---
-        // Đôi khi Bootstrap không xóa backdrop kịp thời, ta xóa thủ công để chắc chắn
+        // Workaround: Bootstrap occasionally orphans the backdrop element
+        // when hide() is called during a transition. Clean up manually.
         setTimeout(() => {
             const backdrops = document.querySelectorAll('.modal-backdrop');
             if (backdrops.length > 0 && !document.body.classList.contains('modal-open')) {
@@ -190,46 +148,41 @@ async function handleFormSubmit(event) {
     }
 }
 
+// -- Character Counter --
+// Visual feedback: red below minimum threshold, green when valid.
 function updateCharCount() {
     if (!textInput || !charCount) return;
-    
     const count = textInput.value.length;
     charCount.textContent = count;
-    
-    if (count < 10) {
-        charCount.style.color = 'var(--danger-color)';
-    } else {
-        charCount.style.color = 'var(--success-color)';
-    }
+    charCount.style.color = count < 10 ? 'var(--danger-color)' : 'var(--success-color)';
 }
 
+// -- Example Text Loader --
+// Picks a random sample from exampleTexts to populate the textarea.
 function showExampleText() {
     if (!textInput) return;
-    
-    const randomIndex = Math.floor(Math.random() * exampleTexts.length);
-    const exampleText = exampleTexts[randomIndex];
-    
-    textInput.value = exampleText;
+    textInput.value = exampleTexts[Math.floor(Math.random() * exampleTexts.length)];
     updateCharCount();
     textInput.focus();
 }
 
+// -- Result Display --
+// Renders the API response and color-codes the confidence bar:
+//   >= 80% green, >= 60% yellow, < 60% red.
 function displayResults(result) {
     if (!predictedClass || !confidenceScore || !confidenceBar) return;
-    
-    // Set the results
+
     predictedClass.textContent = result.label || 'Unknown';
     confidenceScore.textContent = `${(result.score * 100).toFixed(1)}%`;
     confidenceBar.style.width = `${(result.score * 100)}%`;
-    
-    // Show results section
+
     if (resultsSection) {
         resultsSection.classList.remove('d-none');
         resultsSection.classList.add('fade-in');
     }
-    
-    // Set color based on confidence
-    confidenceBar.className = 'progress-bar'; // Reset class
+
+    // Color thresholds for confidence visualization.
+    confidenceBar.className = 'progress-bar';
     if (result.score >= 0.8) {
         confidenceBar.classList.add('bg-success');
     } else if (result.score >= 0.6) {
@@ -239,39 +192,34 @@ function displayResults(result) {
     }
 }
 
+// -- Form Reset --
 function resetForm() {
     if (!textInput) return;
-    
     textInput.value = '';
     updateCharCount();
-    
-    if (resultsSection) {
-        resultsSection.classList.add('d-none');
-    }
-    
+    if (resultsSection) resultsSection.classList.add('d-none');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     textInput.focus();
 }
 
+// -- Toast Notification --
+// Non-blocking error display. Falls back to setTimeout if Bootstrap
+// JS fails to load (e.g., CDN outage).
 function showError(message) {
     const toastContainer = document.getElementById('toast-container') || createToastContainer();
-    
-    const toastHtml = `
-        <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = `
+        <div class="toast align-items-center text-white bg-danger border-0" role="alert">
             <div class="d-flex">
                 <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         </div>
     `;
-    
-    // Append temporarily using innerHTML (simple way)
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = toastHtml;
     const toastEl = tempDiv.firstElementChild;
-    
     toastContainer.appendChild(toastEl);
-    
+
     if (typeof bootstrap !== 'undefined') {
         const bsToast = new bootstrap.Toast(toastEl);
         bsToast.show();
@@ -290,5 +238,7 @@ function createToastContainer() {
     return container;
 }
 
-// ======== PERIODIC API STATUS CHECK ========
-setInterval(checkApiStatus, 30000); // Check every 30 seconds
+// -- Periodic Health Polling --
+// 30s interval matches the Render health check frequency.
+// Keeps the status badge accurate without overloading the free-tier backend.
+setInterval(checkApiStatus, 30000);

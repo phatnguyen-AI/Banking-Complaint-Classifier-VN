@@ -1,9 +1,10 @@
 """
-Hệ thống Phân loại Văn bản Tiếng Việt - Module Xử lý Dữ liệu
-File: clean.py
-Mô tả: Làm sạch và chuẩn hóa văn bản tiếng Việt
-Tác giả: TAN PHAT
-Chức năng: Làm sạch văn bản, loại bỏ ký tự đặc biệt, chuẩn hóa Unicode, và chia dữ liệu
+Data Cleaning - Banking Complaint Classifier
+
+Cleans Vietnamese text, encodes labels, and splits into train/val/test.
+
+Input:  data/raw/banking_text.csv
+Output: data/processed/{train,val,test}.csv (80/10/10 stratified split)
 """
 
 import pandas as pd
@@ -11,113 +12,63 @@ from sklearn.model_selection import train_test_split
 import re
 from pathlib import Path
 
-# ======== CẤU HÌNH TOÀN CỤC ===
 BASE_DIR = Path.cwd()
+RAW_DATA_PATH = BASE_DIR / "data" / "raw" / "banking_text.csv"
+OUTPUT_DIR = BASE_DIR / "data" / "processed"
 
-# Đọc dữ liệu thô
-try:
-    print("[INFO] Đang đọc dữ liệu từ:", f"{BASE_DIR}/data/raw/banking_text.csv")
-    df = pd.read_csv(f"{BASE_DIR}/data/raw/banking_text.csv")
-    print(f"[INFO] Đã đọc thành công, {len(df)} dòng dữ liệu")
-except Exception as e:
-    print(f"[ERROR] Không thể đọc dữ liệu: {e}")
-    raise e
+# Must stay in sync with id2label in train.py and config.json
+LABEL_MAP = {
+    "CARD_ISSUE": 0, "APP_LOGIN": 1, "TRANSACTION": 2,
+    "LOAN_SAVING": 3, "FRAUD_REPORT": 4, "OTHERS": 5,
+}
 
-# ======== HÀM XỬ LÝ DẠT ===
-def clean_text(text):
-    """
-    Làm sạch văn bản tiếng Việt:
-    - Loại bỏ ký tự đặc biệt, giữ lại ký tự có nghĩa
-    - Chuẩn hóa về chữ thường
-    - Loại bỏ khoảng trắng thừa
-    """
-    if not isinstance(text, str): 
+
+def clean_text(text: str) -> str:
+    """Normalize Vietnamese text: strip special chars, lowercase, collapse whitespace."""
+    if not isinstance(text, str):
         return ""
-    
-    # Loại bỏ các ký tự đặc biệt, chỉ giữ lại ký tự Latin, số, và ký tự tiếng Việt
-    text = re.sub(r'[^\w\s\d,?.!àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', ' ', text)
-    
-    # Chuẩn hóa về chữ thường
-    text = text.lower()
-    
-    # Loại bỏ khoảng trắng thừa
-    text = " ".join(text.split())
-    
-    return text
+    # Regex preserves Vietnamese diacritics, alphanumerics, and basic punctuation
+    text = re.sub(
+        r'[^\w\s\d,?.!àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễ'
+        r'ìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]',
+        ' ', text
+    )
+    return " ".join(text.lower().split())
 
-# ======== XỬ LÝ DỮ GIẢM ===
-# Loại bỏ các dòng trống
-df = df.dropna(subset=['text'])
 
-# Áp dụng hàm làm sạch
-df['text_clean'] = df['text'].apply(clean_text)
+def main():
+    print(f"[INFO] Reading: {RAW_DATA_PATH}")
+    df = pd.read_csv(str(RAW_DATA_PATH))
+    print(f"[INFO] Loaded {len(df)} rows")
 
-# Loại bỏ các văn bản quá ngắn
-df = df[df['text_clean'].str.len() > 3]
+    # Clean, filter short texts, and deduplicate to prevent data leakage
+    df = df.dropna(subset=["text"])
+    df["text_clean"] = df["text"].apply(clean_text)
+    df = df[df["text_clean"].str.len() > 3]
+    df = df.drop_duplicates(subset=["text_clean"])
 
-# Loại bỏ các bản trùng lặp
-df = df.drop_duplicates(subset=['text_clean'])
+    # Encode labels
+    df["label_id"] = df["label"].map(LABEL_MAP)
+    unmapped = df["label_id"].isna().sum()
+    if unmapped > 0:
+        print(f"[WARNING] Dropping {unmapped} rows with unknown labels")
+        df = df.dropna(subset=["label_id"])
+        df["label_id"] = df["label_id"].astype(int)
 
-# ======== ÁNH DÁNH LABEL ===
-label_map = {
-    "CARD_ISSUE": 0, "APP_LOGIN": 1, "TRANSACTION": 2,
-    "LOAN_SAVING": 3, "FRAUD_REPORT": 4, "OTHERS": 5
-}
+    print(f"[INFO] After cleaning: {len(df)} rows")
 
-# Chuyển đổi text thành số
-df['label_id'] = df['label'].map(label_map)
+    # Stratified split preserves class distribution across splits
+    train_df, temp_df = train_test_split(df, test_size=0.2, random_state=42, stratify=df["label_id"])
+    val_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42, stratify=temp_df["label_id"])
 
-print(f"[INFO] Đã làm sạch dữ liệu, còn {len(df)} dòng")
+    print(f"[INFO] Train: {len(train_df)} | Val: {len(val_df)} | Test: {len(test_df)}")
 
-# ======== CHIA DỮ LIỆU (TRAIN/VAL/TEST SPLIT) ===
-try:
-    # Chia dữ liệu: 80% train, 10% val, 10% test
-    train_df, temp_df = train_test_split(df, test_size=0.2, random_state=42, stratify=df['label_id'])
-    val_df, test_df = train_test_split(temp_df, test_size=0.5, random_state=42, stratify=temp_df['label_id'])
-    
-    print(f"[INFO] Đã chia dữ liệu:")
-    print(f"  - Train: {len(train_df)} dòng")
-    print(f"  - Validation: {len(val_df)} dòng")
-    print(f"  - Test: {len(test_df)} dòng")
-    
-except Exception as e:
-    print(f"[ERROR] Lỗi khi chia dữ liệu: {e}")
-    raise e
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    train_df.to_csv(OUTPUT_DIR / "train.csv", index=False)
+    val_df.to_csv(OUTPUT_DIR / "val.csv", index=False)
+    test_df.to_csv(OUTPUT_DIR / "test.csv", index=False)
+    print(f"[DONE] Saved to {OUTPUT_DIR}")
 
-# ======== LƯU DỮ GIẢM ===
-try:
-    output_dir = BASE_DIR / "data/processed"
-    output_dir.mkdir(exist_ok=True)
-    print(f"[INFO] Tạo thư mục output tại: {output_dir}")
-    
-    # Lưu các file đã xử lý
-    train_df.to_csv(output_dir / "train.csv", index=False)
-    val_df.to_csv(output_dir / "val.csv", index=False)
-    test_df.to_csv(output_dir / "test.csv", index=False)
-    
-    print("[INFO] Đã lưu dữ liệu đã xử lý vào:")
-    print(f"  - Train: {output_dir / 'train.csv'}")
-    print(f"  - Validation: {output_dir / 'val.csv'}")
-    print(f"  - Test: {output_dir / 'test.csv'}")
-    
-except Exception as e:
-    print(f"[ERROR] Lỗi khi lưu dữ liệu: {e}")
-    raise e
 
-print("[SUCCESS] Hoàn thành quá trình làm sạch và chuẩn hóa dữ liệu!")
-
-df['text_clean'] = df['text'].apply(clean_text)
-df = df[df['text_clean'].str.len() > 3]
-df = df.drop_duplicates(subset=['text_clean'])
-label_map = {
-    "CARD_ISSUE": 0, "APP_LOGIN": 1, "TRANSACTION": 2,
-    "LOAN_SAVING": 3, "FRAUD_REPORT": 4, "OTHERS": 5
-}
-df['label_id'] = df['label'].map(label_map)
-
-train_df, test_val_df = train_test_split(df, test_size=0.2, random_state=42, stratify=df['label_id'])
-val_df, test_df = train_test_split(test_val_df, test_size=0.5, random_state=42, stratify=test_val_df['label_id'])
-
-train_df.to_csv(BASE_DIR / "data/processed/train.csv", index=False)
-val_df.to_csv(BASE_DIR / "data/processed/val.csv", index=False)
-test_df.to_csv(BASE_DIR / "data/processed/test.csv", index=False)
+if __name__ == "__main__":
+    main()

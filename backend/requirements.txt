@@ -1,9 +1,30 @@
-# Minimal requirements for Render deployment with 512MB RAM
+# ---------------------------------------------------------------------------
+# Production Runtime Dependencies
+# ---------------------------------------------------------------------------
+# Minimal dependency set for the inference API. Training-only packages
+# (torch, transformers, scikit-learn) are deliberately excluded to keep
+# the container image small and reduce memory footprint on Render Free Tier.
+#
+# Version pins ensure reproducible builds. Update with caution -- newer
+# versions of onnxruntime may change memory allocation behavior.
+# ---------------------------------------------------------------------------
+
+# Web framework and ASGI server
 fastapi==0.104.1
 uvicorn==0.24.0.post1
+
+# Inference engine -- replaces PyTorch for serving (3-5x faster, lower memory)
 onnxruntime==1.16.3
+
+# Numerical operations (softmax, argmax on logits)
 numpy==1.26.2
+
+# Rust-backed tokenizer -- used instead of full `transformers` package to
+# avoid pulling in torch (~2GB) as a transitive dependency
 tokenizers==0.20.3
+
+# Request validation and serialization
 pydantic==2.5.2
-# Only essential extras for production
+
+# Required by FastAPI for form/multipart parsing
 python-multipart==0.0.6

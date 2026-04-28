@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống Phân loại Văn bản - Text Classification AI</title>
-    
-    <!-- Bootstrap 5 CSS -->
+    <title>Banking Complaint Classifier - Vietnamese Text Classification</title>
+
+    <!-- External CSS: loaded from CDN to avoid bundling overhead -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Header -->
+
+    <!-- Sticky header with real-time API health indicator -->
     <header class="header shadow-sm">
         <nav class="navbar navbar-expand-lg navbar-light">
             <div class="container">
@@ -23,6 +21,7 @@
                     <i class="fas fa-robot text-primary me-2"></i>
                     <span class="fw-bold">Text<span class="text-primary">Classification</span> System</span>
                 </a>
+                <!-- API status badge: updated every 30s by script.js -->
                 <div class="ms-auto">
                     <span class="badge bg-success">API Status: <span id="api-status">Checking...</span></span>
                 </div>
@@ -30,63 +29,66 @@
         </nav>
     </header>
 
-    <!-- Main Content -->
     <main class="main-content py-5">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
-                    <!-- Hero Section -->
+
+                    <!-- Hero: single H1 per page for SEO -->
                     <section class="text-center mb-5">
-                        <h1 class="display-4 fw-bold mb-3">Hệ thống Phân loại Văn bản Khiếu Nại</h1>
-                        <p class="lead text-muted">Ứng dụng tiên tiến để phân loại khiếu nại một cách chính xác và nhanh chóng, đưa đến bộ phận giải quuyết hiệu quả</p>
+                        <h1 class="display-4 fw-bold mb-3">Banking Complaint Text Classifier</h1>
+                        <p class="lead text-muted">Classify Vietnamese banking complaints into the correct department for faster resolution</p>
                     </section>
 
-                    <!-- Input Section -->
+                    <!-- Input form: textarea with character counter and validation -->
                     <section class="card shadow-sm border-0 mb-4">
                         <div class="card-body p-4 p-lg-5">
-                            <h2 class="h5 mb-4"><i class="fas fa-edit me-2"></i>Nhập văn bản cần phân loại</h2>
-                            
+                            <h2 class="h5 mb-4"><i class="fas fa-edit me-2"></i>Enter complaint text</h2>
+
                             <form id="classification-form">
                                 <div class="mb-4">
-                                    <textarea 
-                                        class="form-control form-control-lg" 
-                                        id="text-input" 
-                                        rows="6" 
-                                        placeholder="Nhập văn bản của bạn vào đây..."
+                                    <textarea
+                                        class="form-control form-control-lg"
+                                        id="text-input"
+                                        rows="6"
+                                        placeholder="Type or paste a Vietnamese banking complaint here..."
                                         required
                                     ></textarea>
                                     <div class="form-text">
-                                        <span id="char-count">0</span> ký tự • Tối thiểu 10 ký tự
+                                        <span id="char-count">0</span> characters -- minimum 10
                                     </div>
                                 </div>
-                                
+
                                 <div class="d-flex justify-content-between align-items-center">
+                                    <!-- Fills textarea with a random sample complaint -->
                                     <button type="button" class="btn btn-outline-secondary me-2" id="example-btn">
-                                        <i class="fas fa-lightbulb me-2"></i>Ví dụ
+                                        <i class="fas fa-lightbulb me-2"></i>Example
                                     </button>
                                     <button type="submit" class="btn btn-primary btn-lg px-5" id="classify-btn">
-                                        <i class="fas fa-search me-2"></i>Phân loại
+                                        <i class="fas fa-search me-2"></i>Classify
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </section>
 
-                    <!-- Results Section -->
+                    <!-- Results: hidden by default, revealed after API response -->
                     <section id="results-section" class="card shadow-sm border-0 mb-4 d-none">
                         <div class="card-body p-4 p-lg-5">
-                            <h2 class="h5 mb-4"><i class="fas fa-chart-pie me-2"></i>Kết quả phân loại</h2>
-                            
+                            <h2 class="h5 mb-4"><i class="fas fa-chart-pie me-2"></i>Classification Result</h2>
+
                             <div class="row">
+                                <!-- Predicted category label -->
                                 <div class="col-md-6 mb-4">
                                     <div class="result-card h-100">
-                                        <h6 class="text-muted mb-2">Lớp dự đoán</h6>
+                                        <h6 class="text-muted mb-2">Predicted Category</h6>
                                         <div class="result-value" id="predicted-class">-</div>
                                     </div>
                                 </div>
+                                <!-- Confidence score with progress bar -->
                                 <div class="col-md-6 mb-4">
                                     <div class="result-card h-100">
-                                        <h6 class="text-muted mb-2">Độ tin cậy</h6>
+                                        <h6 class="text-muted mb-2">Confidence</h6>
                                         <div class="result-value">
                                             <span id="confidence-score">-</span>
                                             <div class="progress mt-2">
@@ -96,49 +98,50 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="d-flex justify-content-end mt-3">
                                 <button class="btn btn-outline-primary" id="new-analysis-btn">
-                                    <i class="fas fa-redo me-2"></i>Phân loại văn bản mới
+                                    <i class="fas fa-redo me-2"></i>Classify another
                                 </button>
                             </div>
                         </div>
                     </section>
 
-                    <!-- Information Section -->
+                    <!-- Model info panel: static reference data -->
                     <section class="card shadow-sm border-0 mb-4">
                         <div class="card-body p-4 p-lg-5">
-                            <h2 class="h5 mb-4"><i class="fas fa-info-circle me-2"></i>Thông tin mô hình</h2>
-                            
+                            <h2 class="h5 mb-4"><i class="fas fa-info-circle me-2"></i>Model Information</h2>
+
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <div class="info-item">
-                                        <span class="info-label">Mô hình:</span>
+                                        <span class="info-label">Model:</span>
                                         <span class="info-value">paraphrase-multilingual-MiniLM-L12-v2</span>
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="info-item">
-                                        <span class="info-label">Ngôn ngữ:</span>
-                                        <span class="info-value">Tiếng Việt</span>
+                                        <span class="info-label">Language:</span>
+                                        <span class="info-value">Vietnamese</span>
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="info-item">
-                                        <span class="info-label">Số lớp:</span>
+                                        <span class="info-label">Categories:</span>
                                         <span class="info-value">6</span>
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <div class="info-item">
-                                        <span class="info-label">Tối ưu:</span>
-                                        <span class="info-value">Quantization INT8</span>
+                                        <span class="info-label">Optimization:</span>
+                                        <span class="info-value">ONNX INT8 Quantization</span>
                                     </div>
                                 </div>
                             </div>
-                            
+
+                            <!-- Classification categories with color-coded indicators -->
                             <div class="mt-4">
-                                <h6 class="text-muted mb-3">Các lớp phân loại:</h6>
+                                <h6 class="text-muted mb-3">Classification Categories:</h6>
                                 <div class="row">
                                     <div class="col-md-6 mb-2">
                                         <div class="class-badge">
@@ -185,30 +188,28 @@
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="footer py-4 mt-5">
         <div class="container">
             <div class="row">
                 <div class="col-md-6 mb-4 mb-md-0">
-                    <h5 class="text-white mb-3">Text Classification System</h5>
-                    <p class="text-white-50">Hệ thống phân loại khiếu nại thông minh - Phát triển bởi TAN PHAT</p>
+                    <h5 class="text-white mb-3">Banking Complaint Classifier</h5>
+                    <p class="text-white-50">Automated complaint routing system - Built by Phat Nguyen</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <h6 class="text-white mb-3">Thông tin liên hệ</h6>
+                    <h6 class="text-white mb-3">Contact</h6>
                     <div class="text-white-50">
                         <p>Email: tanphat6406@gmail.com</p>
-                        <p>SĐT: 0333786257</p>
                     </div>
                 </div>
             </div>
             <hr class="border-secondary my-4">
             <div class="text-center text-white-50">
-                <small>&copy; 2025 TAN PHAT - Text Classification System. All rights reserved.</small>
+                <small>&copy; 2025 Phat Nguyen - Banking Complaint Classifier. All rights reserved.</small>
             </div>
         </div>
     </footer>
 
-    <!-- Loading Modal -->
+    <!-- Loading modal: static backdrop prevents dismissal during API call -->
     <div class="modal fade" id="loading-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content border-0">
@@ -216,15 +217,14 @@
                     <div class="spinner-border text-primary mb-3" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <p class="mb-0">Đang phân loại văn bản...</p>
+                    <p class="mb-0">Classifying text...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS Bundle -->
+    <!-- JS loaded at end of body for faster initial paint -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
     <script src="script.js"></script>
 </body>
 </html>

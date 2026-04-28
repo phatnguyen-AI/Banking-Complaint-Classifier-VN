@@ -1,4 +1,16 @@
-/* ======== GLOBAL STYLES ======== */
+/*
+ * Banking Complaint Classifier - Design System
+ *
+ * Custom properties defined in :root serve as the single source of truth
+ * for all colors. Bootstrap utility overrides at the bottom ensure visual
+ * consistency when Bootstrap's defaults conflict with the design system.
+ *
+ * All transitions use CSS transforms (GPU-accelerated) rather than
+ * layout-triggering properties like margin/top for smooth performance
+ * on low-end devices.
+ */
+
+/* -- Design Tokens -- */
 :root {
     --primary-color: #4361ee;
     --secondary-color: #64748b;
@@ -12,6 +24,7 @@
     --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+/* -- Reset -- */
 * {
     margin: 0;
     padding: 0;
@@ -25,7 +38,7 @@ body {
     line-height: 1.6;
 }
 
-/* ======== HEADER ======== */
+/* -- Header: sticky nav with z-index above card hover effects -- */
 .header {
     background-color: white;
     position: sticky;
@@ -44,11 +57,12 @@ body {
     transform: translateY(-2px);
 }
 
-/* ======== MAIN CONTENT ======== */
+/* -- Content Area -- */
 .main-content {
-    min-height: calc(100vh - 250px);
+    min-height: calc(100vh - 250px); /* Pushes footer to bottom on short content */
 }
 
+/* Card: elevated surface with hover lift effect */
 .card {
     border-radius: 12px !important;
     border: 1px solid var(--border-color) !important;
@@ -60,6 +74,7 @@ body {
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
 }
 
+/* Form inputs: consistent padding and focus ring */
 .form-control, .form-control:focus {
     border-radius: 8px;
     border: 1px solid var(--border-color);
@@ -73,7 +88,7 @@ body {
     box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
 }
 
-/* ======== BUTTONS ======== */
+/* -- Buttons -- */
 .btn {
     border-radius: 8px;
     font-weight: 500;
@@ -104,7 +119,7 @@ body {
     transform: translateY(-2px);
 }
 
-/* ======== RESULT CARDS ======== */
+/* -- Result Cards: left accent border indicates data significance -- */
 .result-card {
     background-color: var(--light-color);
     border-radius: 12px;
@@ -118,6 +133,7 @@ body {
     color: var(--primary-color);
 }
 
+/* Thin progress bar for confidence visualization */
 .progress {
     height: 8px;
     border-radius: 4px;
@@ -127,7 +143,7 @@ body {
     background-color: var(--primary-color);
 }
 
-/* ======== INFO SECTION ======== */
+/* -- Model Info Section -- */
 .info-item {
     display: flex;
     justify-content: space-between;
@@ -146,6 +162,7 @@ body {
     color: var(--dark-color);
 }
 
+/* Category badges with color-coded dot indicators */
 .class-badge {
     display: flex;
     align-items: center;
@@ -168,14 +185,15 @@ body {
     display: inline-block;
 }
 
-.bg-1 { background-color: #ef4444; }
-.bg-2 { background-color: #f59e0b; }
-.bg-3 { background-color: #10b981; }
-.bg-4 { background-color: #3b82f6; }
-.bg-5 { background-color: #8b5cf6; }
-.bg-6 { background-color: #ec4899; }
+/* One color per classification category */
+.bg-1 { background-color: #ef4444; } /* CARD_ISSUE */
+.bg-2 { background-color: #f59e0b; } /* APP_LOGIN */
+.bg-3 { background-color: #10b981; } /* TRANSACTION */
+.bg-4 { background-color: #3b82f6; } /* LOAN_SAVING */
+.bg-5 { background-color: #8b5cf6; } /* FRAUD_REPORT */
+.bg-6 { background-color: #ec4899; } /* OTHERS */
 
-/* ======== FOOTER ======== */
+/* -- Footer -- */
 .footer {
     background-color: var(--dark-color);
     color: white;
@@ -185,7 +203,7 @@ body {
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* ======== MODALS ======== */
+/* -- Loading Modal -- */
 .modal-content {
     border-radius: 12px;
     border: none;
@@ -201,7 +219,7 @@ body {
     height: 3rem;
 }
 
-/* ======== ANIMATIONS ======== */
+/* -- Animations: CSS-only for GPU acceleration -- */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
@@ -211,28 +229,29 @@ body {
     animation: fadeIn 0.5s ease-out;
 }
 
-/* ======== RESPONSIVE ======== */
+/* -- Responsive: tablet and below -- */
 @media (max-width: 768px) {
     .container {
         padding-left: 15px;
         padding-right: 15px;
     }
-    
+
     .display-4 {
         font-size: 2rem;
     }
-    
+
     .result-value {
         font-size: 1.2rem;
     }
-    
+
     .btn-lg {
         padding: 10px 20px;
         font-size: 0.9rem;
     }
 }
 
-/* ======== UTILITIES ======== */
+/* -- Bootstrap Utility Overrides --
+   These ensure our design tokens take precedence over Bootstrap defaults. */
 .shadow-sm {
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important;
 }
@@ -249,7 +268,7 @@ body {
     background-color: var(--success-color) !important;
 }
 
-/* ======== EXAMPLE TEXTS ======== */
+/* -- Example Text Blocks (used in info panel) -- */
 .example-text {
     background-color: var(--light-color);
     border-left: 3px solid var(--primary-color);
@@ -265,7 +284,7 @@ body {
     transform: translateX(5px);
 }
 
-/* ======== CHART CANVAS ======== */
+/* -- Chart Container (reserved for future analytics) -- */
 .chart-container {
     position: relative;
     height: 300px;

@@ -1,0 +1,134 @@
+You are a senior technical writer with deep expertise in product-oriented storytelling for AI/ML projects. Your task is to completely rewrite the README.md for a Vietnamese Banking Complaint Text Classifier project. The target audience is **hiring managers and recruiters at product-focused tech companies**.
+
+---
+
+## CONTEXT: PROJECT FACTS
+
+Use the following verified facts to write the README. Do NOT invent metrics or features.
+
+**Project Name:** Banking Complaint Classifier for Vietnamese Text  
+**Live Demo:** https://llmfontend.vercel.app/  
+**Author:** Phat Nguyen | tanphat6406@gmail.com | LinkedIn: https://www.linkedin.com/in/phat-nguyen-a264722b7/
+
+**Business Problem:**  
+- Vietnamese banks receive thousands of customer complaints daily across channels (app, email, hotline, branch).  
+- Manual routing of complaints to the correct department (Card, Fraud, Loan, etc.) is slow, error-prone, and expensive.  
+- Misrouted complaints increase resolution time, reduce customer satisfaction (NPS), and create compliance risk.
+
+**Solution:**  
+- An end-to-end NLP system that automatically classifies Vietnamese banking complaints into 6 categories and routes them to the appropriate department in real time.  
+- 6 categories: CARD_ISSUE, APP_LOGIN, TRANSACTION, LOAN_SAVING, FRAUD_REPORT, OTHERS.
+
+**Technical Stack & Decisions (explain the WHY behind each choice):**  
+1. Base Model: `paraphrase-multilingual-MiniLM-L12-v2` — chosen over PhoBERT/XLM-R because it offers multilingual Vietnamese support with a much smaller footprint, critical for cost-constrained deployment.  
+2. Fine-tuning: Transfer learning on ~4,640 Vietnamese banking complaint samples. Train/Val/Test split: 80/10/10. Hyperparams: lr=2e-5, batch=32, epochs=5, max_len=64.  
+3. ONNX + INT8 Dynamic Quantization: Reduced model size by ~75% while maintaining ~87% accuracy (F1 ~87%). Enables inference <100ms per request.  
+4. ONNX Runtime with single-thread config (`OMP_NUM_THREADS=1`, `intra_op_num_threads=1`, `enable_cpu_mem_arena=False`) — optimized for 0.1 CPU / 512MB RAM free-tier hosting.  
+5. Backend: FastAPI with async lifecycle management, CORS middleware, softmax post-processing.  
+6. Frontend: Vanilla HTML/CSS/JS + Bootstrap 5 on Vercel CDN. Responsive, real-time API health check (30s polling), graceful error handling.  
+7. Deployment: Backend on Render (Free Plan, Docker container, auto-deploy on push), Frontend on Vercel (auto-deploy). Zero hosting cost.  
+8. Training Pipeline: Modular Python pipeline — `cleaning/` → `training/` → `quant/` → production-ready ONNX model. Fully reproducible.
+
+**Performance Metrics:**  
+- Accuracy: ~87%  
+- F1-score: ~87%  
+- Inference latency: <100ms per request  
+- Model size after quantization: ~129MB  
+- Memory footprint: <100MB per inference  
+- Runs stable on 0.1 CPU, 512MB RAM (Render Free Tier)
+
+---
+
+## WRITING INSTRUCTIONS
+
+### Tone & Style
+- Write in **professional English**, suitable for a recruiter or hiring manager at a product company.  
+- Lead with the **business problem and value proposition** BEFORE any technical detail.  
+- Show **product thinking**: frame every technical decision as a response to a business constraint (cost, speed, accuracy, user experience).  
+- Use clear, confident language. Avoid jargon without context. No filler words.
+
+### Structure (follow this order strictly)
+
+1. **Title & Badges**  
+   - A compelling English title that communicates value (not just "Text Classifier").  
+   - Badges: Python 3.9+, FastAPI, ONNX Runtime, License MIT, plus a "Live Demo" badge linking to the app.
+
+2. **Hero Section (2-3 sentences)**  
+   - Start with the business pain point (manual complaint routing is slow, costly, error-prone).  
+   - State the solution (automated NLP classification → instant routing → faster resolution).  
+   - Mention the live demo link.
+
+3. **Business Impact / Value Proposition (bullet points)**  
+   - Frame as measurable outcomes: reduced manual routing effort, faster complaint resolution, lower operational cost, improved customer satisfaction.  
+   - Mention zero-cost deployment as a strategic advantage for MVP/pilot.  
+   - Position this as a production-grade pilot, not a toy project.
+
+4. **System Architecture (diagram)**  
+   - Simple ASCII or text diagram showing: User Input → Frontend (Vercel) → REST API (FastAPI on Render) → ONNX Model → Classification Result → Department Routing.  
+   - Keep it clean and recruiter-readable.
+
+5. **Key Technical Decisions (table format)**  
+   - Table with columns: Decision | Choice | Business Rationale  
+   - Cover: model selection, quantization strategy, deployment platform, runtime optimization, frontend approach.  
+   - This section should demonstrate that every tech choice was driven by product/business reasoning, not just technical preference.
+
+6. **Model Performance**  
+   - Present metrics clearly: Accuracy, F1, Latency, Model Size, Memory.  
+   - Include the two performance comparison images (float32 vs ONNX+INT8).  
+   - Add a short narrative: "We traded X% accuracy for Y% reduction in cost/size, which enables Z."
+
+7. **Classification Categories (table)**  
+   - Table: Category | Description | Example Use Case  
+   - For each of the 6 categories, add a practical example of what kind of complaint goes there and which department would handle it.
+
+8. **Project Structure**  
+   - Clean tree diagram of the repo structure.  
+   - Brief annotation for each major directory.
+
+9. **Quick Start / Getting Started**  
+   - Step-by-step setup instructions (clone, install, run).  
+   - Include Docker deployment.  
+   - Keep it concise and copy-pasteable.
+
+10. **Training Pipeline**  
+    - Describe the 4-step pipeline: Data Cleaning → Fine-tuning → Quantization → Production Export.  
+    - Emphasize reproducibility and modularity.
+
+11. **Production Deployment**  
+    - Current live URLs (Frontend + Backend).  
+    - Infrastructure details: Render Free Plan (0.1 CPU, 512MB RAM), Vercel.  
+    - Emphasize: zero-cost, auto-deploy CI/CD, production-stable.
+
+12. **Optimization Deep Dive (collapsible/details section)**  
+    - Backend: ONNX Runtime config, thread limiting, memory arena disabled, lazy loading.  
+    - Frontend: CDN assets, async API calls, 30s health polling, graceful degradation.  
+    - Network: gzip compression, minimal payload, keep-alive.  
+    - Frame each optimization as solving a real constraint (e.g., "512MB RAM limit required us to...").
+
+13. **Future Roadmap**  
+    - Frame as product evolution, not just tech improvements.  
+    - Examples: multi-language support for regional expansion, batch API for enterprise integration, confidence-based escalation (low-confidence → human review), analytics dashboard for complaint trends.
+
+14. **Author & Contact**  
+    - Professional section with name, email, LinkedIn.
+
+15. **License & Acknowledgments**  
+    - MIT License.  
+    - Credit: Hugging Face, FastAPI, ONNX Runtime, Render, Vercel.
+
+### Formatting Rules
+- Use clear markdown with proper headings (H1 for title, H2 for major sections, H3 for subsections).  
+- Use tables for structured comparisons.  
+- Use bullet points for lists, not paragraphs.  
+- Use code blocks for commands.  
+- Use emojis sparingly (only for section headers if at all, e.g., 🎯, 🏗️, 📊).  
+- Keep total length between 300-450 lines of markdown.  
+- Every section should answer the recruiter's implicit question: "Does this person think like a product builder or just a coder?"
+
+### What NOT to Do
+- Do NOT write in Vietnamese.  
+- Do NOT list features without explaining WHY they matter.  
+- Do NOT use vague language like "good performance" — use specific numbers.  
+- Do NOT make it look like a homework assignment or course project.  
+- Do NOT add metrics or features that are not in the facts above.  
+- Do NOT use "LLM" in the title — this is a fine-tuned sentence transformer, not a large language model.
